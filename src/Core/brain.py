@@ -1,4 +1,3 @@
-from huggingface_hub import InferenceClient
 from Core.memory_management import History, Memory
 from Core.personality_manager import PersonalityManager
 from Core.chatbot_personality import ChatbotPersonality  

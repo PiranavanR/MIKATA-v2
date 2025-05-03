@@ -9,15 +9,6 @@ class UserInfoManager:
         """Initialize and load user's personal information."""
         self.user_info_file = "src\\Data\\user_info.json"
         self.load_user_info()
-        # Load API key for AI model
-        load_dotenv("DataHub\\.env")
-        TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-        self.LLM_Model = os.getenv("self.LLM_Model")
-        self.client = InferenceClient(
-            provider="together",
-            api_key= TOGETHER_API_KEY
-        )
-        self.user_info_model = self.LLM_Model
 
     def load_user_info(self):
         """Load or create a new user information profile."""

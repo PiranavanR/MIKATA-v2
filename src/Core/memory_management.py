@@ -1,7 +1,6 @@
 from Services.llm_service import openrouter_llama4_maverick
 import json
 import os
-from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 import datetime
 import time
@@ -46,14 +45,10 @@ class History:
 
 class Memory:
     def __init__(self):
-        TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-        self.LLM_Model = os.getenv("self.LLM_Model")
-        summary_api_key = TOGETHER_API_KEY
         self.summary_model = self.LLM_Model
         self.memory_file_path = "src\\Data\\memory.json"
         self.session_summaries = self.load_summaries()
         #print(summary_api_key,self.summary_model)
-        self.client = InferenceClient(provider="together",api_key=summary_api_key)
         self.sys_msg = f"Summarize the conversation in 1–3 concise sentences for long-term memory retention by an AI assistant. Focus only on essential information such as user requests, preferences, tasks, or key decisions to support accurate and personalized future responses. Exclude small talk or irrelevant content. Replace relative time expressions (e.g., “today,” “tomorrow”) with the exact date and time using {time.strftime('%H:%M %p', time.localtime())} and {datetime.datetime.now().date()}. Return only the summary text"
 
     def load_summaries(self):

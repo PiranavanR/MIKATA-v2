@@ -1,7 +1,6 @@
 from Services.llm_service import google_gemini
 import json
 import os
-from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 
 class PersonalityManager:
@@ -9,14 +8,7 @@ class PersonalityManager:
         """Initialize and load personality profile."""
         self.personality_file = "src\\Data\\personality.json"
         self.load_personality()
-        TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-        self.LLM_Model = os.getenv("self.LLM_Model")
         load_dotenv("DataHub\\.env")
-        self.client = InferenceClient(
-            provider="together",
-            api_key=TOGETHER_API_KEY
-        )
-        self.personality_model = self.LLM_Model
 
     def load_personality(self):
         """Load or create a new personality profile."""
