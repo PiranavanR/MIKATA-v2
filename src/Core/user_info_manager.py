@@ -1,8 +1,6 @@
 from Services.llm_service import google_gemini
 import json
 import os
-from huggingface_hub import InferenceClient
-from dotenv import load_dotenv
 
 class UserInfoManager:
     def __init__(self):
