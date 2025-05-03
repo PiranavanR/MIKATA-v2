@@ -45,7 +45,6 @@ class History:
 
 class Memory:
     def __init__(self):
-        self.summary_model = self.LLM_Model
         self.memory_file_path = "src\\Data\\memory.json"
         self.session_summaries = self.load_summaries()
         #print(summary_api_key,self.summary_model)
