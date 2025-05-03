@@ -30,7 +30,7 @@ class MIKATATelegramBot:
         self.bot = None  # Will be assigned in run()
 
         self.scheduler = BackgroundScheduler()
-        self.scheduler.add_job(self.proactive_check_in, 'interval', minutes=1)
+        self.scheduler.add_job(self.proactive_check_in, 'interval', hours=3)
         self.scheduler.start()
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
