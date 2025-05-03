@@ -1,0 +1,53 @@
+{
+    "name": "Piranavan",
+    "age": null,
+    "gender": "Unspecified",
+    "location": "Living in a PG",
+    "language": "English",
+    "hobbies": [
+        "space enthusiast",
+        "quadcopter designs",
+        "space enthusiasm",
+        "Quadcopter Design",
+        "space discoveries",
+        "space exploration",
+        "reading",
+        "space",
+        "quadcopter design",
+        "quadcopters"
+    ],
+    "profession": {
+        "interests": [
+            "quadcopter designs",
+            "space exploration",
+            "self-esteem",
+            "personal growth"
+        ]
+    },
+    "activities": {
+        "internships": [
+            {
+                "field": "Unspecified",
+                "duration": "one month",
+                "start_date": "May",
+                "end_date": "June"
+            }
+        ],
+        "projects": [
+            "quadcopter project"
+        ],
+        "presentations": [],
+        "certifications": [],
+        "other_achievements": [
+            "gave a dress to crush"
+        ]
+    },
+    "preferences": {
+        "communication_style": "casual",
+        "favorite_topics": [
+            "quadcopter designs",
+            "space discovery"
+        ],
+        "disliked_topics": []
+    }
+}
