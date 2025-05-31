@@ -1,0 +1,88 @@
+2025-03-12 19:48:20.608 - RealTimeSTT: root - INFO - Starting RealTimeSTT
+2025-03-12 19:48:20.882 - RealTimeSTT: root - INFO - Initializing audio recording (creating pyAudio input stream, sample rate: 16000 buffer size: 512
+2025-03-12 19:48:20.906 - RealTimeSTT: root - INFO - Initializing WebRTC voice with Sensitivity 3
+2025-03-12 19:48:20.906 - RealTimeSTT: root - DEBUG - WebRTC VAD voice activity detection engine initialized successfully
+2025-03-12 19:48:21.711 - RealTimeSTT: torio._extension.utils - DEBUG - Loading FFmpeg6
+2025-03-12 19:48:21.721 - RealTimeSTT: torio._extension.utils - DEBUG - Failed to load FFmpeg6 extension.
+Traceback (most recent call last):
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 116, in _find_ffmpeg_extension
+    ext = _find_versionsed_ffmpeg_extension(ffmpeg_ver)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 108, in _find_versionsed_ffmpeg_extension
+    _load_lib(lib)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 94, in _load_lib
+    torch.ops.load_library(path)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch\_ops.py", line 1236, in load_library
+    ctypes.CDLL(path)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\ctypes\__init__.py", line 376, in __init__
+    self._handle = _dlopen(self._name, mode)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: Could not find module 'C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\lib\libtorio_ffmpeg6.pyd' (or one of its dependencies). Try using the full path with constructor syntax.
+2025-03-12 19:48:21.841 - RealTimeSTT: torio._extension.utils - DEBUG - Loading FFmpeg5
+2025-03-12 19:48:21.893 - RealTimeSTT: torio._extension.utils - DEBUG - Failed to load FFmpeg5 extension.
+Traceback (most recent call last):
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 116, in _find_ffmpeg_extension
+    ext = _find_versionsed_ffmpeg_extension(ffmpeg_ver)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 108, in _find_versionsed_ffmpeg_extension
+    _load_lib(lib)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 94, in _load_lib
+    torch.ops.load_library(path)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch\_ops.py", line 1236, in load_library
+    ctypes.CDLL(path)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\ctypes\__init__.py", line 376, in __init__
+    self._handle = _dlopen(self._name, mode)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: Could not find module 'C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\lib\libtorio_ffmpeg5.pyd' (or one of its dependencies). Try using the full path with constructor syntax.
+2025-03-12 19:48:21.893 - RealTimeSTT: torio._extension.utils - DEBUG - Loading FFmpeg4
+2025-03-12 19:48:21.898 - RealTimeSTT: torio._extension.utils - DEBUG - Failed to load FFmpeg4 extension.
+Traceback (most recent call last):
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 116, in _find_ffmpeg_extension
+    ext = _find_versionsed_ffmpeg_extension(ffmpeg_ver)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 108, in _find_versionsed_ffmpeg_extension
+    _load_lib(lib)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 94, in _load_lib
+    torch.ops.load_library(path)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch\_ops.py", line 1236, in load_library
+    ctypes.CDLL(path)
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\ctypes\__init__.py", line 376, in __init__
+    self._handle = _dlopen(self._name, mode)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: Could not find module 'C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\lib\libtorio_ffmpeg4.pyd' (or one of its dependencies). Try using the full path with constructor syntax.
+2025-03-12 19:48:21.903 - RealTimeSTT: torio._extension.utils - DEBUG - Loading FFmpeg
+2025-03-12 19:48:21.903 - RealTimeSTT: torio._extension.utils - DEBUG - Failed to load FFmpeg extension.
+Traceback (most recent call last):
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 116, in _find_ffmpeg_extension
+    ext = _find_versionsed_ffmpeg_extension(ffmpeg_ver)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Piranavan\AppData\Local\Programs\Python\Python311\Lib\site-packages\torio\_extension\utils.py", line 106, in _find_versionsed_ffmpeg_extension
+    raise RuntimeError(f"FFmpeg{version} extension is not available.")
+RuntimeError: FFmpeg extension is not available.
+2025-03-12 19:48:22.866 - RealTimeSTT: root - DEBUG - Silero VAD voice activity detection engine initialized successfully
+2025-03-12 19:48:22.871 - RealTimeSTT: root - DEBUG - Starting realtime worker
+2025-03-12 19:48:22.871 - RealTimeSTT: root - DEBUG - Waiting for main transcription model to start
+2025-03-12 19:48:34.168 - RealTimeSTT: root - DEBUG - Main transcription model ready
+2025-03-12 19:48:34.168 - RealTimeSTT: root - DEBUG - RealtimeSTT initialization completed successfully
+2025-03-12 19:48:34.168 - RealTimeSTT: root - INFO - Setting listen time
+2025-03-12 19:48:34.168 - RealTimeSTT: root - INFO - State changed from 'inactive' to 'listening'
+2025-03-12 19:48:36.316 - RealTimeSTT: root - DEBUG - Waiting for recording start
+2025-03-12 19:48:38.379 - RealTimeSTT: root - INFO - voice activity detected
+2025-03-12 19:48:38.379 - RealTimeSTT: root - INFO - recording started
+2025-03-12 19:48:38.379 - RealTimeSTT: root - INFO - State changed from 'listening' to 'recording'
+2025-03-12 19:48:38.379 - RealTimeSTT: root - DEBUG - Waiting for recording stop
+2025-03-12 19:48:40.489 - RealTimeSTT: root - INFO - recording stopped
+2025-03-12 19:48:40.490 - RealTimeSTT: root - INFO - State changed from 'recording' to 'inactive'
+2025-03-12 19:48:40.524 - RealTimeSTT: root - INFO - State changed from 'inactive' to 'transcribing'
+2025-03-12 19:48:40.524 - RealTimeSTT: root - DEBUG - Adding transcription request, no early transcription started
+2025-03-12 19:48:40.544 - RealTimeSTT: root - DEBUG - Receive from parent_transcription_pipe after sendiung transcription request, transcribe_count: 1
+2025-03-12 19:48:40.549 - RealTimeSTT: root - INFO - State changed from 'transcribing' to 'inactive'
+2025-03-12 19:48:42.504 - RealTimeSTT: root - DEBUG - Model tiny completed transcription in 1.98 seconds
+2025-03-12 19:48:42.504 - RealTimeSTT: root - INFO - Setting listen time
+2025-03-12 19:48:42.504 - RealTimeSTT: root - INFO - State changed from 'inactive' to 'listening'
+2025-03-12 19:48:42.509 - RealTimeSTT: root - DEBUG - Waiting for recording start
+2025-03-12 19:48:42.514 - RealTimeSTT: urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): huggingface.co:443
+2025-03-12 19:48:42.865 - RealTimeSTT: urllib3.connectionpool - DEBUG - https://huggingface.co:443 "GET /api/models/meta-llama/Meta-Llama-3-8B-Instruct?expand=inferenceProviderMapping HTTP/1.1" 200 540
+2025-03-12 19:48:42.865 - RealTimeSTT: urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.together.xyz:443
+2025-03-12 19:48:43.664 - RealTimeSTT: urllib3.connectionpool - DEBUG - https://api.together.xyz:443 "POST /v1/chat/completions HTTP/1.1" 200 None
+2025-03-12 19:48:56.622 - RealTimeSTT: root - DEBUG - Receive from stdout pipe

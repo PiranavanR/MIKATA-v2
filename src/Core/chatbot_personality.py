@@ -1,22 +1,24 @@
-import json
 import os
+from pymongo import MongoClient
+from dotenv import load_dotenv
+from datetime import datetime
 
 class ChatbotPersonality:
-    def __init__(self, personality_file="src\\Data\\chatbot_personality.json"):
-        """Initialize chatbot personality from a JSON file or set default values."""
-        self.personality_file = personality_file
+    def __init__(self):
+        """Initialize chatbot personality from MongoDB or default."""
+        load_dotenv("DataHub/.env")
+        mongo_uri = "mongodb+srv://MIKATA:mikata4228@mikata.0vlqy1o.mongodb.net/?retryWrites=true&w=majority&appName=MIKATA"
+        client = MongoClient(mongo_uri)
+        self.db = client["MIKATA"]
+        self.collection = self.db["chatbot_personality"]
         self.personality = self.load_personality()
 
     def load_personality(self):
-        """Load chatbot personality from a JSON file. If not found, use default values."""
-        if os.path.exists(self.personality_file):
-            try:
-                with open(self.personality_file, "r") as file:
-                    return json.load(file)
-            except json.JSONDecodeError:
-                print("Error loading chatbot personality. Using default values.")
+        """Fetch chatbot personality from MongoDB, or use defaults."""
+        doc = self.collection.find_one({"_id": "chatbot"})
+        if doc and "data" in doc:
+            return doc["data"]
         
-        # Default chatbot personality
         default_personality = {
             "name": "Mikata",
             "role": "AI Companion",
@@ -34,30 +36,36 @@ class ChatbotPersonality:
             "preferred_nickname": "Miks",
             "personal_philosophy": "Be curious, be fun, and always explore new ideas!"
         }
+
+        self.collection.replace_one(
+            {"_id": "chatbot"},
+            {"_id": "chatbot", "data": default_personality, "updated_at": datetime.utcnow()},
+            upsert=True
+        )
         return default_personality
 
+    def save_personality(self):
+        """Save updated personality to MongoDB."""
+        self.collection.replace_one(
+            {"_id": "chatbot"},
+            {"_id": "chatbot", "data": self.personality, "updated_at": datetime.utcnow()},
+            upsert=True
+        )
+
     def update_personality(self, key, value):
-        """Update a specific trait in the chatbot's personality and save it."""
+        """Update a personality trait and save."""
         if key in self.personality:
             self.personality[key] = value
             self.save_personality()
         else:
             print(f"Invalid key: {key}. Personality trait not found.")
 
-    def save_personality(self):
-        """Save the updated chatbot personality to the JSON file."""
-        try:
-            with open(self.personality_file, "w") as file:
-                json.dump(self.personality, file, indent=4)
-        except IOError as e:
-            print(f"Error saving chatbot personality: {e}")
-
     def get_trait(self, key):
-        """Retrieve a specific trait from the chatbot's personality."""
+        """Get a specific personality trait."""
         return self.personality.get(key, "Trait not found.")
 
     def adapt_personality(self, user_interaction):
-        """Dynamically adapt chatbot personality based on interactions."""
+        """Adapt traits dynamically based on interaction."""
         if "formal" in user_interaction.lower():
             self.update_personality("formality", "formal")
         elif "joke" in user_interaction.lower():

@@ -1,100 +1,107 @@
 from Services.geolocation_service import GeoLocationService
 from Services.weather_service import WeatherService
-from Core.brain import Brain
+from Core.brain import Brain # Import Brain
 from Services.time_service import get_current_datetime
 from Services.search_service import SearchTools
 import re
 import time
+import json # Added for parsing LLM output
+import logging # Added for logging
+
+logger = logging.getLogger(__name__)
 
 def measure_time(func):
     """Decorator to measure the runtime of a function."""
     def wrapper(*args, **kwargs):
-        start_time = time.time()  # Start timer
-        result = func(*args, **kwargs)  # Run the function
-        end_time = time.time()  # End timer
-        print(f"Execution time of {func.__name__}: {end_time - start_time:.6f} seconds\n")
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        logger.info(f"Execution time of {func.__name__}: {end_time - start_time:.6f} seconds")
         return result
     return wrapper
 
 class Agent:
-    def __init__(self):
+    def __init__(self, brain_instance: Brain): # Agent now takes a Brain instance
         """Initialize Intelligent Agent with LLM, geolocation, and weather services."""
-        self.llm = Brain()
+        self.brain = brain_instance # Use the passed Brain instance
         self.geo_service = GeoLocationService()
         self.weather_service = WeatherService()
         self.search_tools = SearchTools()
 
     @measure_time
-    def execute_functions(self, user_query):
-        """Determines required functions using LLM and executes them in order."""
+    # This method is what the telegram_bot.py will call.
+    # It returns a tuple: (text_response, scheduling_instruction_dict_or_None)
+    async def process_user_input(self, user_query: str) -> tuple[str, dict | None]:
+        """
+        Processes user query: determines required functions, executes them,
+        and generates a final response or a scheduling instruction.
+        """
+        # Step 1: Determine if the user wants to call a function or just chat
+        function_calls_or_chat = self.brain.subdivide_query_for_tools(user_query)
+        
         results = {}
-        function_list = self.llm.subdivide_query(user_query).split("\n")
-        print(function_list)
+        scheduling_instruction = None
 
-        if function_list[0] == "exit":
-            return "exit"
+        if function_calls_or_chat == "general_chat":
+            # No specific tool needed, proceed to general chat response
+            pass
+        elif isinstance(function_calls_or_chat, list) and function_calls_or_chat:
+            # Found function calls, process them
+            for func_call in function_calls_or_chat:
+                func_name = func_call.get("name")
+                func_args = func_call.get("arguments", {}) # Assuming LLM returns "arguments"
 
-        def extract_function_details(call_str):
-            """Extracts function name and parameters safely using regex."""
-            match = re.match(r"(\w+)\((.*)\)", call_str)
-
-            if match:
-                function_name = match.group(1)
-                param_str = match.group(2).strip()
-
-                params = {}
-                if param_str:
-                    param_pairs = param_str.split(",")  
-                    for pair in param_pairs:
-                        key, value = pair.split("=")
-                        key = key.strip()
-                        value = value.strip().strip("'").strip('"')  # Remove extra spaces and quotes
-                        
-                        # Convert numbers properly
-                        if value.isdigit():
-                            value = int(value)
-
-                        params[key] = value
-                return function_name, params
-            
-            else:
-                # Handle cases where there are no parameters (e.g., "general_chat")
-                return call_str.strip(), {}
-
-        for index, function_call in enumerate(function_list):
-            is_last = (index == len(function_list) - 1)  # Check if it's the last function
-
-            try:
-                function_name, params = extract_function_details(function_call)
-            except Exception as e:
-                print(f"Error parsing function call: {e}")
-                continue  # Skip execution if parsing fails
-
-            if function_name == "general_chat":
-                pass# Simply return general chat mode
-
-            elif function_name == "get_location":
-                results["location"] = self.geo_service.get_location()
-                print(results)
-
-            elif function_name == "get_weather":
-                if "location" in results:
-                    latitude, longitude = results["location"]["latitude"], results["location"]["longitude"]
+                if func_name == "schedule_conversation":
+                    # This is a special instruction, don't execute it here.
+                    # Just capture it and pass it up.
+                    scheduling_instruction = {
+                        "action": func_args.get("action"),
+                        "time_expression": func_args.get("time_expression"),
+                        "specific_message": func_args.get("specific_message")
+                    }
+                    # If scheduling, we short-circuit the execution of other functions
+                    # and the general response generation.
+                    # The brain will then generate a confirmation message.
+                    logger.info(f"Agent detected scheduling instruction: {scheduling_instruction}")
+                    # Break after finding scheduling instruction, as it's usually a standalone intent
+                    break
+                elif func_name == "general_chat": # Handle if general_chat is returned in a list
+                    pass
                 else:
-                    location = self.geo_service.get_location()
-                    latitude, longitude = location["latitude"], location["longitude"]
-                    results["location"] = location
+                    # Execute other general service functions
+                    try:
+                        if func_name == "get_location":
+                            results["location"] = self.geo_service.get_location()
+                        elif func_name == "get_weather":
+                            location = func_args.get("location")
+                            if location:
+                                # Prioritize explicit location, else use current location if available
+                                results["weather"] = self.weather_service.get_weather_by_city(location)
+                            elif "location" in results: # If get_location was called first
+                                lat, lon = results["location"]["latitude"], results["location"]["longitude"]
+                                results["weather"] = self.weather_service.get_weather(lat, lon)
+                            else: # Fallback to current location if not explicitly provided
+                                location_data = self.geo_service.get_location()
+                                results["location"] = location_data
+                                results["weather"] = self.weather_service.get_weather(location_data["latitude"], location_data["longitude"])
+                        elif func_name == "get_current_datetime":
+                            results["time"] = get_current_datetime()
+                        elif func_name == "search_duckduckgo":
+                            results['search'] = self.search_tools.search_duckduckgo(query=func_args.get("query"), max_results=func_args.get("max_results", 3))
+                        elif func_name == "search_wikipedia":
+                            results['wikipedia'] = self.search_tools.search_wikipedia(query=func_args.get("query"), char_limit=func_args.get("char_limit", 500))
+                        else:
+                            logger.warning(f"Unknown function requested: {func_name}")
+                    except Exception as e:
+                        logger.error(f"Error executing function {func_name}: {e}")
+                        results[f"{func_name}_error"] = f"Failed to execute {func_name}."
 
-                results["weather"] = self.weather_service.get_weather(latitude, longitude)
-
-            elif function_name == "get_current_datetime":
-                results["time"] = get_current_datetime()
-
-            elif function_name == "search_duckduckgo":
-                results['search'] = self.search_tools.search_duckduckgo(**params)  # Pass extracted params
-
-            elif function_name == "search_wikipedia":
-                results['wikipedia'] = self.search_tools.search_wikipedia(**params)  # Pass extracted params
-
-        final_response = self.llm.generate_response(user_query, results)
-        return final_response
+        # If a scheduling instruction was found, bypass normal response generation
+        if scheduling_instruction:
+            # The Brain will generate a confirmation message based on this instruction
+            confirmation_message, _ = self.brain.generate_response(user_query, {"scheduling_instruction": scheduling_instruction})
+            return confirmation_message, scheduling_instruction
+        else:
+            # No scheduling instruction, proceed with normal response generation
+            final_response_text, _ = self.brain.generate_response(user_query, {"results": results})
+            return final_response_text, None

@@ -1,31 +1,36 @@
 from Services.llm_service import google_gemini
+from pymongo import MongoClient
+from dotenv import load_dotenv
 import json
 import os
+import datetime
 
 class UserInfoManager:
     def __init__(self):
-        """Initialize and load user's personal information."""
-        self.user_info_file = "src\\Data\\user_info.json"
-        self.load_user_info()
+        """Initialize MongoDB connection and load user's personal information."""
+        load_dotenv("DataHub/.env")
+
+        MONGO_URI = "mongodb+srv://MIKATA:mikata4228@mikata.0vlqy1o.mongodb.net/?retryWrites=true&w=majority&appName=MIKATA"
+        self.client = MongoClient(MONGO_URI)
+        self.db = self.client["MIKATA"]
+        self.collection = self.db["user_info"]
+
+        self.user_info = self.load_user_info()
 
     def load_user_info(self):
-        """Load or create a new user information profile."""
-        if os.path.exists(self.user_info_file):
-            try:
-                with open(self.user_info_file, "r") as file:
-                    self.user_info = json.load(file)
-            except (json.JSONDecodeError, IOError):
-                print("Error loading user information. Resetting.")
-                self.reset_user_info()
+        """Load user info from MongoDB or create default."""
+        existing = self.collection.find_one({"_id": "profile"})
+        if existing:
+            return existing["data"]
         else:
-            self.reset_user_info()
-    
+            return self.reset_user_info(save=True)
+
     def get_user_info(self):
         return self.user_info
 
-    def reset_user_info(self):
+    def reset_user_info(self, save=False):
         """Reset user information to default."""
-        self.user_info = {
+        default_info = {
             "name": "Unknown",
             "age": None,
             "gender": "Unspecified",
@@ -46,22 +51,32 @@ class UserInfoManager:
                 "other_achievements": []
             }
         }
-        self.save_user_info()
+        self.user_info = default_info
+        if save:
+            self.save_user_info()
+        return default_info
 
     def save_user_info(self):
-        """Save user information data."""
+        """Save user information to MongoDB."""
         print("Saving User Information...")
-        with open(self.user_info_file, "w") as file:
-            json.dump(self.user_info, file, indent=4)
+        self.collection.replace_one(
+            {"_id": "profile"},
+            {"_id": "profile", "data": self.user_info, "updated_at": datetime.datetime.utcnow()},
+            upsert=True
+        )
 
     def update_user_info(self, new_data):
         """Update user's personal information."""
         print("Updating User Information...")
         for key, value in new_data.items():
-            if isinstance(self.user_info.get(key), list):  # Merge lists instead of overwriting
+            if isinstance(self.user_info.get(key), list):
                 self.user_info[key] = list(set(self.user_info[key] + value))
-            elif isinstance(self.user_info.get(key), dict):  # Merge dictionaries
-                self.user_info[key].update(value)
+            elif isinstance(self.user_info.get(key), dict):
+                for sub_key, sub_value in value.items():
+                    if isinstance(self.user_info[key].get(sub_key), list):
+                        self.user_info[key][sub_key] = list(set(self.user_info[key][sub_key] + sub_value))
+                    else:
+                        self.user_info[key][sub_key] = sub_value
             else:
                 self.user_info[key] = value
         self.save_user_info()
@@ -70,7 +85,7 @@ class UserInfoManager:
     def add_activity(self, category, activity):
         """Add a new activity under a specific category."""
         if category in self.user_info["activities"]:
-            if activity not in self.user_info["activities"][category]:  # Avoid duplicates
+            if activity not in self.user_info["activities"][category]:
                 self.user_info["activities"][category].append(activity)
                 self.save_user_info()
                 print(f"Added activity under {category}: {activity}")
@@ -121,13 +136,12 @@ class UserInfoManager:
         """
 
         response = google_gemini(prompt, "")
-
-        updated_user_info = response.strip().replace("```", "")[5:]  # Raw JSON string
-        #print(updated_user_info)
+        cleaned_response = response.strip().replace("```", "")
+        if cleaned_response.lower().startswith("json"):
+            cleaned_response = cleaned_response[4:].strip()
 
         try:
-            parsed_user_info = json.loads(updated_user_info)  # Convert to dictionary
+            parsed_user_info = json.loads(cleaned_response)
             self.update_user_info(parsed_user_info)
         except json.JSONDecodeError:
             print("Error: Failed to parse JSON response.")
-

@@ -5,16 +5,16 @@
     "location": "Living in a PG",
     "language": "English",
     "hobbies": [
-        "space enthusiast",
-        "quadcopter designs",
-        "space enthusiasm",
         "Quadcopter Design",
-        "space discoveries",
-        "space exploration",
-        "reading",
-        "space",
         "quadcopter design",
-        "quadcopters"
+        "space enthusiasm",
+        "quadcopters",
+        "reading",
+        "space enthusiast",
+        "space exploration",
+        "space discoveries",
+        "quadcopter designs",
+        "space"
     ],
     "profession": {
         "interests": [
@@ -43,10 +43,9 @@
         ]
     },
     "preferences": {
-        "communication_style": "casual",
+        "communication_style": "friendly",
         "favorite_topics": [
-            "quadcopter designs",
-            "space discovery"
+            "space"
         ],
         "disliked_topics": []
     }

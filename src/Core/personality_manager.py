@@ -1,3 +1,4 @@
+from pymongo import MongoClient
 from Services.llm_service import google_gemini
 import json
 import os
@@ -5,26 +6,28 @@ from dotenv import load_dotenv
 
 class PersonalityManager:
     def __init__(self):
-        """Initialize and load personality profile."""
-        self.personality_file = "src\\Data\\personality.json"
-        self.load_personality()
-        load_dotenv("DataHub\\.env")
+        """Initialize and connect to MongoDB."""
+        load_dotenv("DataHub/.env")
+        uri = "mongodb+srv://MIKATA:mikata4228@mikata.0vlqy1o.mongodb.net/?retryWrites=true&w=majority&appName=MIKATA"  # Replace with your actual MongoDB URI
+        client = MongoClient(uri)
+        db = client["MIKATA"]
+        self.collection = db["personality_profile"]
+        self.profile_id = "default"  # Static ID since there's only one profile for now
+        self.personality = self.load_personality()
 
     def load_personality(self):
-        """Load or create a new personality profile."""
-        if os.path.exists(self.personality_file):
-            try:
-                with open(self.personality_file, "r") as file:
-                    self.personality = json.load(file)
-            except (json.JSONDecodeError, IOError):
-                print("Error loading personality. Resetting.")
-                self.reset_personality()
+        """Load or initialize a personality profile from MongoDB."""
+        profile = self.collection.find_one({"_id": self.profile_id})
+        if profile:
+            profile.pop("_id")
+            return profile
         else:
-            self.reset_personality()
+            return self.reset_personality(save=True)
 
-    def reset_personality(self):
-        """Reset personality to default."""
-        self.personality = {
+    def reset_personality(self, save=False):
+        """Reset personality to default values."""
+        default_profile = {
+            "_id": self.profile_id,
             "name": "Unknown",
             "tone": "neutral",
             "interests": [],
@@ -33,16 +36,17 @@ class PersonalityManager:
             "topics_liked": [],
             "topics_disliked": []
         }
-        self.save_personality()
+        if save:
+            self.collection.replace_one({"_id": self.profile_id}, default_profile, upsert=True)
+        return {k: v for k, v in default_profile.items() if k != "_id"}
 
     def save_personality(self):
-        """Save personality data."""
+        """Save the current personality profile to MongoDB."""
         print("Saving Personality...")
-        with open(self.personality_file, "w") as file:
-            json.dump(self.personality, file, indent=4)
+        self.collection.replace_one({"_id": self.profile_id}, {"_id": self.profile_id, **self.personality}, upsert=True)
 
     def analyze_and_update(self, conversation_history):
-        """Update the personality profile based on recent conversations."""
+        """Update the personality profile based on recent conversation history."""
         print("Analysing Personality...")
         convo_text = "\n".join([f"{c['role']}: {c['content']}" for c in conversation_history])
 
@@ -55,7 +59,7 @@ class PersonalityManager:
         - Detect favorite topics and update "interests" and "topics_liked".
         - Detect disliked topics and update "topics_disliked".
         - If they mention their name, update "name".
-        Reply in the following format(json):
+        Reply in the following format (JSON):
             "name": "Unknown",
             "tone": "neutral",
             "interests": [],
@@ -63,27 +67,25 @@ class PersonalityManager:
             "formality": "balanced",
             "topics_liked": [],
             "topics_disliked": []
-        Note:You can add extra details if you think it's necessary.
+        Note: You can add extra details if you think it's necessary.
         And make the personality traits like tone (which are temporary) as per the recent conversation alone.
         """
 
         response = google_gemini(prompt, "")
+        updated_personality = response.strip().replace("```", "")
 
-        updated_personality = response.strip().replace("```","")
-        
-        # Parse and merge new traits
         try:
-            new_traits = json.loads(updated_personality)  # Ensure response is JSON formatted
+            new_traits = json.loads(updated_personality)
             for key, value in new_traits.items():
-                if isinstance(self.personality[key], list):  # Merge lists instead of overwriting
+                if isinstance(self.personality.get(key), list):
                     self.personality[key] = list(set(self.personality[key] + value))
                 else:
                     self.personality[key] = value
             self.save_personality()
-            print("Personality Update Succesful!")
+            print("Personality Update Successful!")
         except json.JSONDecodeError:
             print("Error parsing personality update")
 
     def get_personality(self):
-        """Return the stored personality profile."""
+        """Return the current personality profile."""
         return self.personality

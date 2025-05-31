@@ -1,135 +1,136 @@
-from Services.llm_service import openrouter_llama4_maverick
-import json
-import os
+from pymongo import MongoClient
+from collections import Counter
 import datetime
 import time
-from collections import Counter
 import re
+from Services.llm_service import openrouter_llama4_maverick
+import logging
+
+logger = logging.getLogger(__name__)
 
 class History:
     def __init__(self):
-        self.file_path = "src\\Data\\Conversation History.json"
-        self.history = self.load_history()
+        uri = "mongodb+srv://MIKATA:mikata4228@mikata.0vlqy1o.mongodb.net/?retryWrites=true&w=majority&appName=MIKATA"
+        client = MongoClient(uri)
+        db = client["MIKATA"]
+        self.collection = db["conversation_history"]
 
     def load_history(self):
-        """Load the conversation history from the JSON file."""
-        if not os.path.exists(self.file_path):
-            return []
-        try:
-            with open(self.file_path, "r") as convo:
-                return json.load(convo)
-        except (json.JSONDecodeError, IOError):
-            print("Error loading history. Starting with an empty log.")
-            return []
+        return list(self.collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(20))
 
     def save_history(self):
-        """Save the current history to the JSON file."""
-        try:
-            with open(self.file_path, "w") as convo:
-                json.dump(self.history, convo, indent=4)
-        except IOError as e:
-            print(f"Error saving history: {e}")
+        pass
 
     def update_history(self, role, content):
-        """Update the history with new content."""
-        if role == 'assistant':
-            content = [{"role":"assistant", "content": content}]
-        elif role == "user":
-            content = [{"role":"user", "content": content}]
-
-        if isinstance(content, list):
-            self.history.extend(content)
-        else:
-            print("Content must be a list to update the history.")
+        if role not in ["user", "assistant"]:
+            logger.warning(f"Invalid role '{role}'. Must be 'user' or 'assistant'.")
+            return
+        document = {
+            "role": role,
+            "content": content,
+            "timestamp": datetime.datetime.now()
+        }
+        self.collection.insert_one(document)
+        logger.debug(f"History updated: {role} message at {document['timestamp']}")
 
 class Memory:
     def __init__(self):
-        self.memory_file_path = "src\\Data\\memory.json"
-        self.session_summaries = self.load_summaries()
-        #print(summary_api_key,self.summary_model)
-        self.sys_msg = f"Summarize the conversation in 1–3 concise sentences for long-term memory retention by an AI assistant. Focus only on essential information such as user requests, preferences, tasks, or key decisions to support accurate and personalized future responses. Exclude small talk or irrelevant content. Replace relative time expressions (e.g., “today,” “tomorrow”) with the exact date and time using {time.strftime('%H:%M %p', time.localtime())} and {datetime.datetime.now().date()}. Return only the summary text"
+        uri = "mongodb+srv://MIKATA:mikata4228@mikata.0vlqy1o.mongodb.net/?retryWrites=true&w=majority&appName=MIKATA"
+        client = MongoClient(uri)
+        self.db = client["MIKATA"]
+        self.collection = self.db["memory_summaries"]
+        self.scheduled_events_collection = self.db["scheduled_events"]
+
+        now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M %p')
+        self.sys_msg = (
+            f"Summarize the conversation in 1–3 concise sentences for long-term memory retention "
+            f"by an AI assistant. Focus only on essential information such as user requests, preferences, "
+            f"tasks, or key decisions to support accurate and personalized future responses. Exclude small talk "
+            f"or irrelevant content. Replace relative time expressions (e.g., “today,” “tomorrow”) with the exact "
+            f"date and time using {now_str}. "
+            f"Return only the summary text."
+        )
 
     def load_summaries(self):
-        """Load the conversation history from the JSON file."""
-        if not os.path.exists(self.memory_file_path):
-            return []
-        try:
-            with open(self.memory_file_path, "r") as convo:
-                return json.load(convo)
-        except (json.JSONDecodeError, IOError):
-            print("Error loading history. Starting with an empty log.")
-            return []
+        return list(self.collection.find({}, {"_id": 0}))
 
     def store_summary(self, summary):
-        """Store a single summary for the session."""
-        session_id  = len(self.session_summaries)
-        self.session_summaries.append({"id":session_id, "summary":summary, "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())})
-        try:
-            with open(self.memory_file_path, "w") as convo:
-                json.dump(self.session_summaries, convo, indent=4)
-        except IOError as e:
-            print(f"Error saving history: {e}")
-
+        document = {
+            "summary": summary,
+            "timestamp": datetime.datetime.now()
+        }
+        self.collection.insert_one(document)
+        logger.info("Memory summary stored successfully.")
 
     def get_relevant_context(self, user_input, top_n=3):
-        """Retrieve the top N most relevant summaries for the current user input."""
-
-        if len(self.session_summaries) < 3:
-            top_n = len(self.session_summaries)
+        summaries = self.load_summaries()
+        if not summaries:
+            return []
 
         similarity_scores = []
+        for summary_doc in summaries:
+            summary_text = summary_doc.get("summary")
+            if summary_text:
+                score = self.calculate_similarity(user_input, summary_text)
+                similarity_scores.append((summary_text, score))
 
-        for summary in self.session_summaries:
-            id = summary['id']
-            content = summary['summary']
-            score = self.calculate_similarity(user_input, content)
-            similarity_scores.append((id, score))
-            
-        # Sort by similarity score in descending order
         similarity_scores.sort(key=lambda x: x[1], reverse=True)
-        print(similarity_scores)
-        
-        # Select the top N most relevant summaries
-        top_summaries = [self.session_summaries[int(session_id)]['summary'] for session_id, _ in similarity_scores[:top_n]]
-        
-        return top_summaries
+        return [text for text, _ in similarity_scores[:top_n]]
 
     def calculate_similarity(self, user_input, summary):
-        """Calculate similarity between user input and a session summary."""
-        # Tokenize and clean the text
         tokens_input = self.tokenize_text(user_input)
         tokens_summary = self.tokenize_text(summary)
-        
-        # Count occurrences of each word
-        counter_input = Counter(tokens_input)
-        counter_summary = Counter(tokens_summary)
-        
-        # Calculate the intersection of keywords
         common_tokens = set(tokens_input).intersection(set(tokens_summary))
-        
-        return len(common_tokens)  # Simple similarity based on shared keywords
+        if not tokens_input and not tokens_summary:
+            return 0.0
+        return len(common_tokens) / (len(tokens_input) + len(tokens_summary) - len(common_tokens)) if (len(tokens_input) + len(tokens_summary) - len(common_tokens)) > 0 else 0.0
 
     def tokenize_text(self, text):
-        """Tokenize text into words, removing non-alphabetic characters."""
         text = text.lower()
-        words = re.findall(r'\b\w+\b', text)  # Extract words using regex
-        return words
+        return re.findall(r'\b\w+\b', text)
 
-    def summariser(self,conversations):
-        """Summarise the Conversation."""
-        # print("Conversations:",conversations)
-        convo = ""
+    def summariser(self, conversations):
+        if not conversations:
+            return ""
+        convo = "\n".join([f"{msg['role']}: {msg['content']}" for msg in conversations])
+        try:
+            summary = openrouter_llama4_maverick(self.sys_msg, convo)
+            return summary
+        except Exception as e:
+            logger.error(f"Error during summarization: {e}")
+            return ""
 
-        for conversation in conversations:
-            convo += f"{conversation['role']}:{conversation['content']} "
-        
-        print(convo)
+    def add_scheduled_event(self, event_id: str, action: str, trigger_time: datetime.datetime, specific_message: str = None):
+        event_data = {
+            "_id": event_id,
+            "action": action,
+            "trigger_time": trigger_time,
+            "specific_message": specific_message,
+            "created_at": datetime.datetime.now(),
+            "is_active": True
+        }
+        try:
+            self.scheduled_events_collection.insert_one(event_data)
+            logger.info(f"Scheduled event added: {event_data}")
+        except Exception as e:
+            logger.error(f"Failed to add scheduled event: {e}")
 
-        formated_convo = [{"role":"user","content":convo}]
+    def get_active_scheduled_event(self):
+        event = self.scheduled_events_collection.find_one(
+            {"is_active": True, "trigger_time": {"$gt": datetime.datetime.now()}},
+            sort=[("trigger_time", 1)]
+        )
+        return event
 
-        #print("Formatted Conversation:",formated_convo) 
-
-        self.summary = openrouter_llama4_maverick(self.sys_msg, convo)
-
-        print(self.summary)
-        return self.summary
+    def deactivate_scheduled_event(self, event_id: str):
+        try:
+            result = self.scheduled_events_collection.update_one(
+                {"_id": event_id},
+                {"$set": {"is_active": False, "deactivated_at": datetime.datetime.now()}}
+            )
+            if result.modified_count > 0:
+                logger.info(f"Scheduled event {event_id} deactivated successfully.")
+            else:
+                logger.warning(f"No active scheduled event found with ID {event_id} to deactivate.")
+        except Exception as e:
+            logger.error(f"Failed to deactivate scheduled event {event_id}: {e}")
